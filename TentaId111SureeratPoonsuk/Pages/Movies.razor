@@ -1,0 +1,167 @@
+﻿@using System.Linq
+@using TentaId111SureeratPoonsuk.Data
+@inject IMoviesData _db;
+@page "/"
+
+<h3>Movies</h3>
+
+@*Jag har gjhort att det är två fomulär där man fylla i Namn och vad man tror sedan där man har redan sett filmen ska man klicka på Edit där visa alla fält alla betyg.*@
+
+<EditForm Model="@newMovie" OnValidSubmit="@Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <label>
+        Movie name:
+        <InputText id="MovieName" @bind-Value="newMovie.MovieName" />
+    </label>
+    <label>
+        Expected grade:
+        <InputNumber id="GradeExpected" @bind-Value="newMovie.GradeExpected" Min="1" Max="5" />
+    </label>
+
+
+    @if (newMovie.MovieId == 0)
+    {
+        <button type="submit" class="btn btn-primary">Add</button>
+    }
+    else
+    {
+
+        <label>
+            Actual grade:
+            <InputNumber id="GradeActual" @bind-Value="newMovie.GradeActual" Min="0" Max="5" />
+        </label>
+        <label>
+            Remember grade:
+            <InputNumber id="GradeRemember" @bind-Value="newMovie.GradeRemember" Min="0" Max="5" />
+        </label>
+
+        <button type="submit" class="btn btn-primary">Update</button>
+    }
+
+</EditForm>
+
+
+@if (movies == null)
+{
+    <p><em>Loading.....</em></p>
+}
+else
+{
+    <table class="table table-striped">
+
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Expected</th>
+                <th>Actual</th>
+                <th>Remember</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var dbRow in movies)
+            {
+                <tr>
+                    <td>@dbRow.MovieName</td>
+                    <td>@dbRow.GradeExpected</td>
+
+                    @if (dbRow.GradeActual == 0)
+                    {
+                        <td>-</td>
+                    }
+                    else
+                    {
+                        <td>@dbRow.GradeActual</td>
+                    }
+
+                    @if (dbRow.GradeRemember == 0)
+                    {
+                        <td>-</td>
+                    }
+                    else
+                    {
+                        <td>@dbRow.GradeRemember</td>
+                    }
+
+                    <td>
+                        <a class="btn btn-info" @onclick="() => Edit(dbRow)">Edit</a>
+                        <a class="btn btn-danger" @onclick="() => DeleteMovie(dbRow.MovieId)">Delete</a>
+
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+
+
+@code {
+    private List<Movie> movies;
+
+    private Movie newMovie = new Movie();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ResetNewMovie();
+
+        await GetMovies();
+    }
+
+    private async Task Save()
+    {
+
+        if (newMovie.MovieId == 0)
+        {
+            await InsertMovie();
+        }
+        else
+        {
+            await UpdateMovie();
+        }
+    }
+
+    private async Task UpdateMovie()
+    {
+        await _db.UpdateMovie(newMovie);
+        ResetNewMovie();
+
+        await GetMovies();
+    }
+
+
+    private async Task InsertMovie()
+    {
+        await _db.InsertMovie(newMovie);
+        ResetNewMovie();
+
+        await GetMovies();
+    }
+
+    private void ResetNewMovie()
+    {
+        newMovie = new Movie();
+        newMovie.GradeExpected = 1;
+    }
+
+    private async Task DeleteMovie(int movieId)
+    {
+        await _db.DeleteMovie(movieId);
+        await GetMovies();
+    }
+
+    private void Edit(Movie item)
+    {
+        newMovie = item;
+    }
+
+    private async Task GetMovies() // hämta alla filmer och sotera 
+    {
+        movies = (await _db.GetData()).OrderBy(m => m.MovieName).ToList();
+
+    }
+}
